@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:alpine
+    ports: ["6379:6379"]  
+  mysql:
+    image: mysql:8.0 # Or your desired MySQL version
+    environment:
+      MYSQL_ROOT_PASSWORD: energex # Set a strong root password
+      MYSQL_DATABASE: energex
+      MYSQL_USER: energex
+      MYSQL_PASSWORD: energex
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-penergex"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "3306:3306"
+  apiserver:
+    build: ./Server/blog-api
+
+    ports: ["8000:8000"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started 
+  node:
+    build: ./Cache
+    ports: ["3000:3000"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started 
+       
+  frontend:
+    build: ./frontend
+    ports: ["3001:3000"]
+    depends_on:
+      apiserver:
+        condition: service_started 
